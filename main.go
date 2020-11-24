@@ -58,11 +58,13 @@ func (s *server ) WriteGateStream(src cvnet2.CV_WriteGateStreamServer) (error){
 }
 
 func main() {
+	// We need to be root to access GPIO
 	if os.Getuid() != 0 {
 		fmt.Println("Sorry, root required.")
 		os.Exit(1)
 	}
 
+	// Set nice priority to -20 to allow low-latency output on PREEMPT_RT Linux Kernel
 	syscall.Setpgid(0, 0); syscall.Setpriority(syscall.PRIO_PGRP, 0, -20)
 
 	sigs := make(chan os.Signal, 1)
