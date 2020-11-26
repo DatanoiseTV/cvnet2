@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"os/signal"
-	"time"
 
 	"fmt"
 
-	"github.com/stianeikeland/go-rpio"
+	"github.com/stianeikeland/go-rpio/v4"
 	cvnet2 "github.com/DatanoiseTV/cvnet2-proto"
 
 	"google.golang.org/grpc"
