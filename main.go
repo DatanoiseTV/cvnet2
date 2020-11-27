@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os/signal"
+	"time"
 
 	"fmt"
 
@@ -318,10 +319,22 @@ func (s *server ) PinMode(ctx context.Context, in *cvnet2.ConfigMessage) (*cvnet
 
 
 func (s *server ) ReadCV(ctx context.Context, in *cvnet2.CVMessage) (*cvnet2.CVMessage, error){
+	if(in.Channel >= 0 && in.Channel <= 19){
+		return &cvnet2.CVMessage{
+			Channel: in.Channel,
+			Value: float32(readAnalog(byte(in.Channel))/4095.0),
+		}, nil
+	}
 	return nil, nil
 }
 
 func (s *server ) WriteCV(ctx context.Context, in *cvnet2.CVMessage) (*cvnet2.CVMessage, error){
+	if(in.Channel >= 0 && in.Channel <= 19){
+		return &cvnet2.CVMessage{
+			Channel: in.Channel,
+			Value: float32(writeAnalog(byte(in.Channel), int(in.Value*4095.0))),
+		}, nil
+	}
 	return nil, nil
 }
 
@@ -334,11 +347,34 @@ func (s *server ) WriteGate(ctx context.Context, in *cvnet2.GateMessage) (*cvnet
 }
 
 func (s *server ) ReadCVStream(in *cvnet2.CVMessage, src cvnet2.CV_ReadCVStreamServer) (error){
+
+	oldValue := float32(0.0)
+
+	for {
+		currentValue := float32(readAnalog(byte(in.Channel))/4095.0)
+
+		if(currentValue != oldValue) {
+			src.Send(&cvnet2.CVMessage{
+				Channel: in.Channel,
+				Value:   currentValue,
+			})
+			oldValue = currentValue
+		}
+		time.Sleep(time.Microsecond * 10)
+	}
+
 	return nil
 }
 
 func (s *server ) WriteCVStream(src cvnet2.CV_WriteCVStreamServer) (error){
-	return nil
+
+	for {
+		msg, _ := src.Recv()
+		if msg.Channel >= 0 && msg.Channel <= 19 {
+			writeAnalog(byte(msg.Channel), int(msg.Value*4095.0))
+		}
+		time.Sleep(time.Microsecond * 10)
+	}
 }
 
 func (s *server ) ReadGateStream(in *cvnet2.GateMessage, src cvnet2.CV_ReadGateStreamServer) (error){
